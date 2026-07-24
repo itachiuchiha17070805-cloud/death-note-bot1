@@ -2,7 +2,19 @@ import os
 import random
 import threading
 import time
+from flask import Flask
 from telebot import TeleBot, types
+
+# Flask server (Render port xatosini yo'qotish uchun)
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Death Note Bot ishlamoqda!", 200
+
+def run_flask():
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
 
 # Bot tokeni
 TOKEN = "8816866283:AAERGz-96nCntew0kl3uwM8vauL7X4OskTs"
@@ -18,30 +30,27 @@ def assign_roles(players_dict):
     roles = {}
     total = len(player_ids)
     
-    # 1 va 2 - Asosiy rollar
     roles[player_ids[0]] = "Kira"
     roles[player_ids[1]] = "L"
     
-    # O'yinchilar soniga qarab boshqa personajlarni qo'shish
     if total >= 4:
         roles[player_ids[2]] = "Misa"
     if total >= 5:
         roles[player_ids[3]] = "Ryuk"
     if total >= 6:
-        roles[player_ids[4]] = "Soichiro Yagami" # Soichiro ham qo'shildi!
+        roles[player_ids[4]] = "Soichiro Yagami"
     if total >= 7:
         roles[player_ids[5]] = "Near"
     if total >= 8:
         roles[player_ids[6]] = "Mello"
         
-    # Qolgan barcha o'yinchilar - Politsiya / Fuqaro
     for p_id in player_ids:
         if p_id not in roles:
             roles[p_id] = "Matsuda (Politsiya)"
             
     return roles
 
-# ================= TAYMER (AVTO-START) =================
+# ================= TAYMER =================
 def auto_start_timer(chat_id):
     time.sleep(45)
     game = games.get(chat_id)
@@ -71,9 +80,9 @@ def start_game_logic(chat_id):
         "Misa": "👁 **Siz Misa Amanesiz!** Vazifangiz: Kiraga yordam berish va Shinigami ko'zlari bilan L'ni qidirish.",
         "Ryuk": "🍎 **Siz Ryuksiz (Shinigami)!** Siz neytralsiz, tunda istalgan o'yinchining roliga mo'ralashingiz mumkin.",
         "Soichiro Yagami": "👮‍♂️ **Siz Soichiro Yagamisiz (Politsiya Boshlig'i)!** Vazifangiz: Tunda biror o'yinchini Kiraning hujumidan **himoya qilish**.",
-        "Near": "🧩 **Siz Nearsiz!** Vazifangiz: L bilan birga tahlil o'tkazish va daftarni qo'lga kiritish.",
-        "Mello": "🍫 **Siz Mellosiz!** Vazifangiz: O'z usullaringiz bilan Kirani burchakka taqash.",
-        "Matsuda (Politsiya)": "👮‍♂️ **Siz Matsudasiz (Politsiya)!** Tunda uxlaysiz, kunduzi muhokamada qatnashib, Kiraga qarshi ovoz berasiz."
+        "Near": "🧩 **Siz Nearsiz!** Vazifangiz: L bilan birga tahlil o'tkazish.",
+        "Mello": "🍫 **Siz Mellosiz!** Vazifangiz: Kirani burchakka taqash.",
+        "Matsuda (Politsiya)": "👮‍♂️ **Siz Matsudasiz (Politsiya)!** Tunda uxlaysiz, kunduzi ovoz berasiz."
     }
 
     for p_id, role in game['roles'].items():
@@ -86,7 +95,7 @@ def start_game_logic(chat_id):
     time.sleep(2)
     start_night(chat_id)
 
-# ================= TUN SIKLI VA TUGMALAR =================
+# ================= TUN SIKLI =================
 def start_night(chat_id):
     game = games.get(chat_id)
     if not game:
@@ -101,7 +110,6 @@ def start_night(chat_id):
     for player_id in alive_players:
         role = game['roles'].get(player_id)
 
-        # 📓 KIRA UCHUN TUGMALAR
         if role == "Kira":
             kb = types.InlineKeyboardMarkup(row_width=1)
             for target_id in alive_players:
@@ -113,7 +121,6 @@ def start_night(chat_id):
             except Exception:
                 pass
 
-        # 🕵️‍♂️ L UCHUN TUGMALAR
         elif role == "L":
             kb = types.InlineKeyboardMarkup(row_width=1)
             for target_id in alive_players:
@@ -125,7 +132,6 @@ def start_night(chat_id):
             except Exception:
                 pass
 
-        # 👮‍♂️ SOICHIRO YAGAMI UCHUN TUGMALAR (HIMOYA)
         elif role == "Soichiro Yagami":
             kb = types.InlineKeyboardMarkup(row_width=1)
             for target_id in alive_players:
@@ -136,7 +142,6 @@ def start_night(chat_id):
             except Exception:
                 pass
 
-        # 🍎 RYUK UCHUN TUGMALAR
         elif role == "Ryuk":
             kb = types.InlineKeyboardMarkup(row_width=1)
             for target_id in alive_players:
@@ -148,7 +153,7 @@ def start_night(chat_id):
             except Exception:
                 pass
 
-# ================= COMMAND HANDLERLAR =================
+# ================= HANDLERLAR =================
 @bot.message_handler(commands=['start'])
 def start_cmd(message):
     bot.reply_to(message, "👋 Death Note botiga xush kelibsiz! Guruhda /create orqali o'yin yarating.")
@@ -176,7 +181,6 @@ def create_game_command(message):
     
     threading.Thread(target=auto_start_timer, args=(chat_id,), daemon=True).start()
 
-# ================= CALLBACK HANDLERLAR =================
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
     data = call.data.split("_")
@@ -229,5 +233,6 @@ def callback_inline(call):
             bot.edit_message_text(f"🍎 Uning roli: **{target_role}** ekan.", call.message.chat.id, call.message.message_id, parse_mode="Markdown")
 
 if __name__ == "__main__":
+    # Flask serverni alohida oqimda yurgazish
+    threading.Thread(target=run_flask, daemon=True).start()
     bot.polling(none_stop=True)
-        
