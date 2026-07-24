@@ -186,8 +186,47 @@ def create_game(message):
             return
         except Exception:
             pass
-    
-    bot.send_message(chat_id, caption_text, reply_markup=kb, parse_mode="Markdown")
+ bot.send_message(chat_id, caption_text, reply_markup=kb, parse_mode="Markdown")
+def start_night(chat_id):
+    game = games.get(chat_id)
+    if not game:
+        return
+
+    # Tungi harakatlarni nolga tushiramiz
+    game['night_actions'] = {'kill': None, 'check_l': None, 'protect': None, 'block': None, 'misa_search': None}
+
+    bot.send_message(chat_id, "🌙 **TUN TUSHDI!**\n\nHamma shahr ahli uquvda... Faol rollar shaxsiy chatda o'z harakatini bajarsin!", parse_mode="Markdown")
+
+    # Har bir tirik o'yinchiga rolga mos tugmalarni yuboramiz
+    for player_id in game['alive']:
+        role = game['roles'].get(player_id)
+
+        # 📓 KIRA UCHUN TUGMALAR:
+        if role == "Kira":
+            kb = types.InlineKeyboardMarkup(row_width=1)
+            for target_id in game['alive']:
+                if target_id != player_id: # O'zini o'ldira olmaydi
+                    p_name = game['players'][target_id]
+                    kb.add(types.InlineKeyboardButton(f"🗡 {p_name}ni o'ldirish", callback_data=f"kill_{chat_id}_{target_id}"))
+            
+            try:
+                bot.send_message(player_id, "📓 **Death Note:** Bugun tunda kimning ismini daftarga yozasiz?", reply_markup=kb)
+            except Exception:
+                pass
+
+        # 🕵️‍♂️ L UCHUN TUGMALAR:
+        elif role == "L":
+            kb = types.InlineKeyboardMarkup(row_width=1)
+            for target_id in game['alive']:
+                if target_id != player_id:
+                    p_name = game['players'][target_id]
+                    kb.add(types.InlineKeyboardButton(f"🔍 {p_name}ni tekshirish", callback_data=f"checkl_{chat_id}_{target_id}"))
+            
+            try:
+                bot.send_message(player_id, "🕵️‍♂️ **L:** Kimni shubhali deb hisobleysiz va tekshirmoqchisiz?", reply_markup=kb)
+            except Exception:
+                pass
+                
 # ==================== CALLBACK HANDLER ====================
 @bot.callback_query_handler(func=lambda call: True)
 def callback_handler(call):
