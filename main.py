@@ -226,7 +226,29 @@ def start_night(chat_id):
                 bot.send_message(player_id, "🕵️‍♂️ **L:** Kimni shubhali deb hisobleysiz va tekshirmoqchisiz?", reply_markup=kb)
             except Exception:
                 pass
-                
+   import threading
+import time
+
+def auto_start_timer(chat_id):
+    # 45 soniya kutadi
+    time.sleep(45)
+    
+    game = games.get(chat_id)
+    # Agar o'yin hali ham kutish rejimida bo'lsa:
+    if game and game.get('status') == 'waiting':
+        players_count = len(game.get('players', {}))
+        
+        if players_count >= 3: # Kamida 3 kishi yig'ilgan bo'lsa
+            bot.send_message(chat_id, "⏰ **Vaqt tugadi! O'yin avtomatik ravishda boshlanmoqda...**", parse_mode="Markdown")
+            start_game_logic(chat_id) # O'yinni boshlash funksiyasi
+        else:
+            bot.send_message(chat_id, "❌ **O'yinni boshlash uchun yetarli o'yinchi yig'ilmadi (kamida 3 kishi kerak). O'yin bekor qilindi.**")
+            games.pop(chat_id, None)
+
+# Guruhda /create yoki o'yin yaratish tugmasi bosilganda:
+# Ushbu qatorni o'yin yaratiladigan joyga qo'shasiz:
+# threading.Thread(target=auto_start_timer, args=(chat_id,), daemon=True).start()
+
 # ==================== CALLBACK HANDLER ====================
 @bot.callback_query_handler(func=lambda call: True)
 def callback_handler(call):
