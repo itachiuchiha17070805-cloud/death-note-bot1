@@ -20,7 +20,6 @@ import sqlite3
 # ==================== BOT TOKEN ====================
 TOKEN = "8816866283:AAERGz-96nCntew0kl3uwM8vauL7X4OskTs"
 bot = telebot.TeleBot(TOKEN)
-
 # ==================== DATABASE SETUP ====================
 conn = sqlite3.connect('deathnote.db', check_same_thread=False)
 cursor = conn.cursor()
